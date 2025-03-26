@@ -214,65 +214,113 @@ const Quiz = () => {
     correct: 0,
     explanation: ""
 	});
-const [customQuestions, setCustomQuestions] = useState(() => {
-  const savedQuestions = localStorage.getItem('customQuizQuestions');
+ const backToMainMenu = () => {
+    setGameMode(null);
+    setSelectedCategory(null);
+    setQuestions([]);
+    setCurrentQuestion(0);
+    setFinished(false);
+    setFeedback(null);
+    setPlayerScores(new Array(playerCount).fill(0));
+    setSoloScore(0);
+    setAnswered(false);
+    setAnsweredQuestions({});
+    setCurrentPlayer(0);
+    setShowHighscoreInput(false);
+    setIsAddingQuestion(false);
+  };	
+  
+ const handleBackToMainMenu = () => {
+    const confirmReturn = window.confirm("Bist du sicher, dass du zum Hauptmenü zurückkehren möchtest? Der aktuelle Fortschritt geht verloren.");
+    
+    if (confirmReturn) {
+      setGameMode(null);
+      setSelectedCategory(null);
+      setQuestions([]);
+      setCurrentQuestion(0);
+      setFinished(false);
+      setFeedback(null);
+      setPlayerScores(new Array(playerCount).fill(0));
+      setSoloScore(0);
+      setAnswered(false);
+      setAnsweredQuestions({});
+      setCurrentPlayer(0);
+      setShowHighscoreInput(false);
+      setIsAddingQuestion(false);
+    }
+  };
+  
+// Benutzerdefinierte Fragen aus dem Local Storage laden oder leeres Array
+  const [customQuestions, setCustomQuestions] = useState(() => {
+    const savedQuestions = localStorage.getItem('customQuizQuestions');
     return savedQuestions ? JSON.parse(savedQuestions) : [];
-});
-const handleAddQuestionChange = (e, index = null) => {
-  const { name, value } = e.target;
-  
-  if (index !== null) {
-    const newAnswers = [...newQuestion.answers];
-    newAnswers[index] = value;
-    setNewQuestion({ ...newQuestion, answers: newAnswers });
-  } else {
-    setNewQuestion({ ...newQuestion, [name]: value });
-  }
-};
-
-const submitNewQuestion = () => {
-  if (!newQuestion.category || !newQuestion.question || 
-      newQuestion.answers.some(a => a.trim() === '') || 
-      !newQuestion.explanation) {
-    alert("Bitte fülle alle Felder aus!");
-    return;
-  }
-
-  setCustomQuestions([...customQuestions, newQuestion]);
-  
-  setNewQuestion({
-    category: "",
-    question: "",
-    answers: ["", "", "", ""],
-    correct: 0,
-    explanation: ""
   });
-  setIsAddingQuestion(false);
-};
- 
 
+  // Funktion zum Aktualisieren des neuen Frage-Objekts
+  const handleAddQuestionChange = (e, index = null) => {
+    const { name, value } = e.target;
+    
+    if (index !== null) {
+      // Wenn ein Index angegeben ist, aktualisiere eine bestimmte Antwort
+      const newAnswers = [...newQuestion.answers];
+      newAnswers[index] = value;
+      setNewQuestion({ ...newQuestion, answers: newAnswers });
+    } else {
+      // Sonst aktualisiere das entsprechende Feld der Frage
+      setNewQuestion({ ...newQuestion, [name]: value });
+    }
+  };
+
+  // Funktion zum Hinzufügen einer neuen Frage
+  const submitNewQuestion = () => {
+    // Überprüfe, ob alle Felder ausgefüllt sind
+    if (!newQuestion.category || !newQuestion.question || 
+        newQuestion.answers.some(a => a.trim() === '') || 
+        !newQuestion.explanation) {
+      alert("Bitte fülle alle Felder aus!");
+      return;
+    }
+
+    // Füge die neue Frage zu den benutzerdefinierten Fragen hinzu
+    setCustomQuestions([...customQuestions, newQuestion]);
+    
+    // Setze das Formular zurück
+    setNewQuestion({
+      category: "",
+      question: "",
+      answers: ["", "", "", ""],
+      correct: 0,
+      explanation: ""
+    });
+    setIsAddingQuestion(false);
+  };
+ 
+  // useEffect-Hook, der bei Änderungen von questionsData, highscores oder customQuestions ausgeführt wird
   useEffect(() => {
-	  
-	  
+    // Extrahiere einzigartige Kategorien aus den Fragen
     const uniqueCategories = Array.from(new Set(questionsData.map((q) => q.category)));
     setCategories(uniqueCategories);
+    
+    // Speichere Highscores und benutzerdefinierte Fragen im Local Storage
     localStorage.setItem('quizHighscores', JSON.stringify(highscores));
-  localStorage.setItem('customQuizQuestions', JSON.stringify(customQuestions));
-}, [questionsData, highscores, customQuestions]);
+    localStorage.setItem('customQuizQuestions', JSON.stringify(customQuestions));
+  }, [questionsData, highscores, customQuestions]);
   
-  
+  // Funktion zum Auswählen einer Kategorie
+  const chooseCategory = (category) => {
+    // Kombiniere vordefinierte und benutzerdefinierte Fragen
+    const allQuestions = [...questionsData, ...customQuestions];
+    setSelectedCategory(category);
+    // Filtere Fragen der ausgewählten Kategorie
+    setQuestions(allQuestions.filter((q) => q.category === category));
+    setCurrentQuestion(0);
+    setFinished(false);
+    setFeedback(null);
+    setAnswered(false);
+    setAnsweredQuestions({});
+  };
 
-const chooseCategory = (category) => {
-  const allQuestions = [...questionsData, ...customQuestions];
-  setSelectedCategory(category);
-  setQuestions(allQuestions.filter((q) => q.category === category));
-  setCurrentQuestion(0);
-  setFinished(false);
-  setFeedback(null);
-  setAnswered(false);
-  setAnsweredQuestions({});
-};
-
+  // Funktion zum Starten eines Spiels
   const startGame = (mode) => {
     setGameMode(mode);
     setSelectedCategory(null);
@@ -286,13 +334,15 @@ const chooseCategory = (category) => {
     setCurrentPlayer(0);
   };
 
+  // Funktion zum Behandeln einer Antwort
   const handleAnswer = (index) => {
-    if (answered) return;
+    if (answered) return; // Verhindere mehrfaches Antworten
 
     setAnswered(true);
     const isCorrect = index === questions[currentQuestion].correct;
 
     if (gameMode === "solo") {
+      // Solo-Modus: Punktestand erhöhen und Feedback geben
       if (isCorrect) {
         setSoloScore((prevScore) => prevScore + 1);
         setFeedback(`Richtig! ${questions[currentQuestion].explanation}`);
@@ -304,6 +354,7 @@ const chooseCategory = (category) => {
     }
 
     if (gameMode === "multiplayer") {
+      // Multiplayer-Modus: Punktestand des aktuellen Spielers erhöhen und Feedback geben
       if (isCorrect) {
         setPlayerScores((prevScores) => {
           const newScores = [...prevScores];
@@ -319,6 +370,7 @@ const chooseCategory = (category) => {
     }
 
     if (gameMode === "kooperativ") {
+      // Kooperativer Modus: Nur Feedback geben
       if (isCorrect) {
         setFeedback(`Richtig! ${questions[currentQuestion].explanation}`);
       } else {
@@ -328,6 +380,7 @@ const chooseCategory = (category) => {
       }
     }
 
+    // Speichere die gegebene Antwort
     setAnsweredQuestions({
       ...answeredQuestions,
       [currentQuestion]: {
@@ -338,23 +391,29 @@ const chooseCategory = (category) => {
     });
   };
 
+  // Funktion zur Behandlung des Weiter-Buttons
   const handleNext = () => {
     if (currentQuestion + 1 < questions.length) {
+      // Gehe zur nächsten Frage
       setCurrentQuestion(currentQuestion + 1);
       setAnswered(false);
       setFeedback(null);
 
       if (gameMode === "multiplayer") {
+        // Wechsle zum nächsten Spieler im Multiplayer-Modus
         setCurrentPlayer((prevPlayer) => (prevPlayer + 1) % playerCount);
       }
     } else {
+      // Quiz ist beendet
       setFinished(true);
       setShowHighscoreInput(true);
     }
   };
 
+  // Funktion zum Speichern eines Highscores
   const saveHighscore = () => {
     if (gameMode === "solo") {
+      // Speichere Highscore für Solo-Modus
       const newHighscore = {
         mode: "Solo",
         name: playerName || "Unbekannt",
@@ -363,40 +422,43 @@ const chooseCategory = (category) => {
       };
       const updatedHighscores = [...highscores, newHighscore]
         .sort((a, b) => b.score - a.score)
-        .slice(0, 10);
+        .slice(0, 10); // Behalte nur die Top 10
       setHighscores(updatedHighscores);
     } else if (gameMode === "multiplayer") {
-          const updatedHighscores = playerScores.map((score, index) => {
-      const playerName = prompt(`Name für Spieler ${index + 1} (max. 15 Zeichen):`, `Spieler ${index + 1}`);
-      return {
-        mode: "Multiplayer",
-        name: playerName ? playerName.slice(0, 15) : `Spieler ${index + 1}`,
-        score: score,
+      // Speichere Highscores für Multiplayer-Modus
+      const updatedHighscores = playerScores.map((score, index) => {
+        const playerName = prompt(`Name für Spieler ${index + 1} (max. 15 Zeichen):`, `Spieler ${index + 1}`);
+        return {
+          mode: "Multiplayer",
+          name: playerName ? playerName.slice(0, 15) : `Spieler ${index + 1}`,
+          score: score,
+          date: new Date().toLocaleDateString()
+        };
+      }).filter(entry => entry.score > 0); // Nur Spieler mit Punkten speichern
+
+      setHighscores([...highscores, ...updatedHighscores]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10)); // Behalte nur die Top 10
+    } else if (gameMode === "kooperativ") {
+      // Speichere Highscore für kooperativen Modus
+      const playerName = prompt("Name für das Kooperative Team (max. 15 Zeichen):", "Kooperatives Team");
+      const newHighscore = {
+        mode: "Kooperativ",
+        name: playerName ? playerName.slice(0, 15) : "Kooperatives Team",
+        score: questions.length, // Alle Fragen richtig beantwortet
         date: new Date().toLocaleDateString()
       };
-    }).filter(entry => entry.score > 0);  // Nur Spieler mit Punkten speichern
+      const updatedHighscores = [...highscores, newHighscore]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10); // Behalte nur die Top 10
+      setHighscores(updatedHighscores);
+    }
+    
+    setShowHighscoreInput(false);
+    setPlayerName("");
+  };
 
-    setHighscores([...highscores, ...updatedHighscores]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10));
-  }else if (gameMode === "kooperativ") {
-    const playerName = prompt("Name für das Kooperative Team (max. 15 Zeichen):", "Kooperatives Team");
-    const newHighscore = {
-      mode: "Kooperativ",
-      name: playerName ? playerName.slice(0, 15) : "Kooperatives Team",
-      score: questions.length,  // Alle Fragen richtig beantwortet
-      date: new Date().toLocaleDateString()
-    };
-    const updatedHighscores = [...highscores, newHighscore]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-    setHighscores(updatedHighscores);
-  }
-  
-  setShowHighscoreInput(false);
-  setPlayerName("");
-};
-
+  // Funktion zum Neustarten des Quiz
   const restartQuiz = () => {
     setGameMode(null);
     setSelectedCategory(null);
@@ -412,6 +474,7 @@ const chooseCategory = (category) => {
     setShowHighscoreInput(false);
   };
 
+  // Funktion zum Rendern der Highscores
   const renderHighscores = () => {
     return (
       <div>
@@ -440,8 +503,10 @@ const chooseCategory = (category) => {
     );
   };
 
+  // Render-Methode der Komponente
   return (
     <div className="quiz-container">
+      {/* Hauptmenü - Anzeige, wenn kein Spielmodus ausgewählt ist */}
       {!gameMode && (
         <div>
           <h1>Willkommen zum Quiz!</h1>
@@ -449,58 +514,65 @@ const chooseCategory = (category) => {
           <button onClick={() => setGameMode("solo")}>Solo</button>
           <button onClick={() => setGameMode("multiplayer")}>Mehrspieler</button>
           <button onClick={() => setGameMode("kooperativ")}>Kooperativ</button>
-  <button onClick={() => setIsAddingQuestion(true)}>Frage einreichen</button>
-  </div>
-)}
-{isAddingQuestion && (
-  <div className="modal">
-    <h2>Neue Frage hinzufügen</h2>
-    <input
-      type="text"
-      name="category"
-      placeholder="Kategorie"
-      value={newQuestion.category}
-      onChange={handleAddQuestionChange}
-    />
-    <input
-      type="text"
-      name="question"
-      placeholder="Frage"
-      value={newQuestion.question}
-      onChange={handleAddQuestionChange}
-    />
-    {newQuestion.answers.map((answer, index) => (
-      <input
-        key={index}
-        type="text"
-        placeholder={`Antwort ${index + 1}`}
-        value={answer}
-        onChange={(e) => handleAddQuestionChange(e, index)}
-      />
-    ))}
-    <select
-      value={newQuestion.correct}
-      onChange={(e) => setNewQuestion({
-        ...newQuestion, 
-        correct: parseInt(e.target.value)
-      })}
-    >
-      {newQuestion.answers.map((_, index) => (
-        <option key={index} value={index}>
-          Richtige Antwort: {index + 1}
-        </option>
-      ))}
-    </select>
-    <textarea
-      name="explanation"
-      placeholder="Erklärung"
-      value={newQuestion.explanation}
-      onChange={handleAddQuestionChange}
-    />
-    <button onClick={submitNewQuestion}>Frage speichern</button>
-    <button onClick={() => setIsAddingQuestion(false)}>Abbrechen</button>
-  </div>
-)}
+          <button onClick={() => setIsAddingQuestion(true)}>Frage einreichen</button>
+        </div>
+      )}
+
+      {/* Formular zum Hinzufügen einer neuen Frage */}
+      {isAddingQuestion && (
+        <div className="modal">
+          <h2>Neue Frage hinzufügen</h2>
+          <input
+            type="text"
+            name="category"
+            placeholder="Kategorie"
+            value={newQuestion.category}
+            onChange={handleAddQuestionChange}
+          />
+          <input
+            type="text"
+            name="question"
+            placeholder="Frage"
+            value={newQuestion.question}
+            onChange={handleAddQuestionChange}
+          />
+          {/* Eingabefelder für alle Antwortoptionen */}
+          {newQuestion.answers.map((answer, index) => (
+            <input
+              key={index}
+              type="text"
+              placeholder={`Antwort ${index + 1}`}
+              value={answer}
+              onChange={(e) => handleAddQuestionChange(e, index)}
+            />
+          ))}
+          {/* Auswahl der richtigen Antwort */}
+          <select
+            value={newQuestion.correct}
+            onChange={(e) => setNewQuestion({
+              ...newQuestion, 
+              correct: parseInt(e.target.value)
+            })}
+          >
+            {newQuestion.answers.map((_, index) => (
+              <option key={index} value={index}>
+                Richtige Antwort: {index + 1}
+              </option>
+            ))}
+          </select>
+          <textarea
+            name="explanation"
+            placeholder="Erklärung"
+            value={newQuestion.explanation}
+            onChange={handleAddQuestionChange}
+          />
+          <button onClick={submitNewQuestion}>Frage speichern</button>
+          <button onClick={() => setIsAddingQuestion(false)}>Abbrechen</button>
+          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
+        </div>
+      )}
+
+      {/* Eingabe der Spieleranzahl im Mehrspieler-Modus */}
       {gameMode === "multiplayer" && !selectedCategory && (
         <div>
           <h1>Wähle die Anzahl der Spieler (max. 3):</h1>
@@ -512,10 +584,12 @@ const chooseCategory = (category) => {
             max="3"
           />
           <button onClick={() => startGame(gameMode)}>Spiel starten</button>
+          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
         </div>
       )}
 
-      {gameMode && !selectedCategory && (
+      {/* Kategorie-Auswahl, wenn Spielmodus ausgewählt ist */}
+      {gameMode && !selectedCategory && !isAddingQuestion && (
         <div>
           <h1>Wähle eine Kategorie:</h1>
           {categories.map((category) => (
@@ -523,50 +597,65 @@ const chooseCategory = (category) => {
               {category}
             </button>
           ))}
+          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
         </div>
       )}
 
+      {/* Solo-Modus-Anzeige */}
       {gameMode === "solo" && selectedCategory && !finished && questions.length > 0 && (
-        <SoloMode
-          questions={questions}
-          currentQuestion={currentQuestion}
-          setCurrentQuestion={setCurrentQuestion}
-          soloScore={soloScore}
-          setSoloScore={setSoloScore}
-          feedback={feedback}
-          answered={answered}
-          handleAnswer={handleAnswer}
-          handleNext={handleNext}
-        />
+        <div>
+          <SoloMode
+            questions={questions}
+            currentQuestion={currentQuestion}
+            setCurrentQuestion={setCurrentQuestion}
+            soloScore={soloScore}
+            setSoloScore={setSoloScore}
+            feedback={feedback}
+            answered={answered}
+            handleAnswer={handleAnswer}
+            handleNext={handleNext}
+          />
+          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
+        </div>
       )}
 
+      {/* Kooperativer Modus-Anzeige */}
       {gameMode === "kooperativ" && selectedCategory && !finished && questions.length > 0 && (
-        <CooperativeMode
-          questions={questions}
-          currentQuestion={currentQuestion}
-          feedback={feedback}
-          answered={answered}
-          handleAnswer={handleAnswer}
-          handleNext={handleNext}
-        />
+        <div>
+          <CooperativeMode
+            questions={questions}
+            currentQuestion={currentQuestion}
+            feedback={feedback}
+            answered={answered}
+            handleAnswer={handleAnswer}
+            handleNext={handleNext}
+          />
+          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
+        </div>
       )}
 
+      {/* Mehrspieler-Modus-Anzeige */}
       {gameMode === "multiplayer" && selectedCategory && !finished && questions.length > 0 && (
-        <MultiplayerMode
-          questions={questions}
-          currentQuestion={currentQuestion}
-          currentPlayer={currentPlayer}
-          playerScores={playerScores}
-          setPlayerScores={setPlayerScores}
-          feedback={feedback}
-          answered={answered}
-          handleAnswer={handleAnswer}
-          handleNext={handleNext}
-        />
+        <div>
+          <MultiplayerMode
+            questions={questions}
+            currentQuestion={currentQuestion}
+            currentPlayer={currentPlayer}
+            playerScores={playerScores}
+            setPlayerScores={setPlayerScores}
+            feedback={feedback}
+            answered={answered}
+            handleAnswer={handleAnswer}
+            handleNext={handleNext}
+          />
+          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
+        </div>
       )}
 
+      {/* Quiz beendet - Anzeige der Ergebnisse und Highscores */}
       {finished && (
         <div>
+          {/* Name für Highscore-Eintrag */}
           {showHighscoreInput && (
             <div>
               <input
@@ -579,11 +668,13 @@ const chooseCategory = (category) => {
             </div>
           )}
           
+          {/* Anzeige der Highscores */}
           {renderHighscores()}
-		  
           
           <h1>Quiz beendet!</h1>
           <p>Alle Fragen wurden beantwortet.</p>
+          
+          {/* Zusammenfassung der Fragen und Antworten */}
           <div>
             <h2>Fragen und Antworten:</h2>
             {questions.map((q, index) => (
@@ -595,6 +686,7 @@ const chooseCategory = (category) => {
             ))}
           </div>
 
+          {/* Anzeige der Punkte im Mehrspieler-Modus */}
           {gameMode === "multiplayer" && (
             <div>
               <h2>Punkte je Spieler:</h2>
@@ -606,6 +698,7 @@ const chooseCategory = (category) => {
             </div>
           )}
 
+          {/* Anzeige der Punkte im Solo-Modus */}
           {gameMode === "solo" && (
             <div>
               <h2>Deine Punktzahl:</h2>
@@ -613,7 +706,9 @@ const chooseCategory = (category) => {
             </div>
           )}
 
+          {/* Buttons zum Neustarten oder Zurück zum Hauptmenü */}
           <button onClick={restartQuiz}>Quiz neu starten</button>
+          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
         </div>
       )}
     </div>
