@@ -170,3 +170,167 @@ tr:hover {
   border-left: 3px solid #007bff;
   font-weight: bold;
 }
+
+.category-dropdown {
+  margin: 20px auto;
+  max-width: 300px;
+}
+
+.category-dropdown select {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.category-dropdown select:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+}
+
+/* Styles für den Login-Screen */
+.login-screen {
+  max-width: 400px;
+  margin: 80px auto;
+  padding: 30px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.login-screen h1 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.auth-form {
+  margin: 20px 0;
+}
+
+.auth-form h2 {
+  margin-bottom: 15px;
+  color: #555;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.auth-form button {
+  width: 100%;
+  padding: 12px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.auth-form button:hover {
+  background-color: #45a049;
+}
+
+.auth-toggle {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.auth-toggle p {
+  margin-bottom: 10px;
+  color: #666;
+}
+
+.auth-toggle button {
+  background-color: #2196F3;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.auth-toggle button:hover {
+  background-color: #0b7dda;
+}
+
+.guest-login {
+  margin-top: 25px;
+}
+
+.guest-login button {
+  background-color: #9e9e9e;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.guest-login button:hover {
+  background-color: #7e7e7e;
+}
+
+.error {
+  color: #f44336;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+/* Styles für das Dropdown-Menü */
+.category-dropdown {
+  margin: 20px auto;
+  max-width: 300px;
+}
+
+.category-dropdown select {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  appearance: menulist; /* Standardpfeil für Dropdown anzeigen */
+}
+
+.category-dropdown select:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+}
+
+/* Styles für Spielernamen im Multiplayer */
+.player-names {
+  margin: 20px auto;
+  max-width: 400px;
+}
+
+.player-name-input {
+  margin-bottom: 15px;
+}
+
+.player-name-input label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.player-name-input input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}

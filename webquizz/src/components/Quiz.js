@@ -3,13 +3,9 @@ import "./Quiz.css";
 import SoloMode from "./SoloMode";
 import MultiplayerMode from "./MultiplayerMode";
 import CooperativeMode from "./CooperativeMode";
-import axios from "axios"; // Stelle sicher, dass axios installiert ist: npm install axios
+import axios from "axios";
 
-// API Basis-URL (passe dies an deine Umgebung an)
-// Statt einer absoluten URL:
-// const API_URL = "http://localhost:4000";
-
-// Verwende einen relativen Pfad:
+// API Basis-URL - angepasst für Render
 const API_URL = "https://webquiz-tqdz.onrender.com";
 
 const Quiz = () => {
@@ -31,8 +27,6 @@ const Quiz = () => {
   const [currentPlayer, setCurrentPlayer] = useState(0);
   const [soloScore, setSoloScore] = useState(0);
   const [playerName, setPlayerName] = useState("");
-  // State für Spielernamen im Multiplayer-Modus
-  const [playerNames, setPlayerNames] = useState(["Spieler 1", "Spieler 2", "Spieler 3"]);
   const [showHighscoreInput, setShowHighscoreInput] = useState(false);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [newQuestion, setNewQuestion] = useState({
@@ -51,6 +45,12 @@ const Quiz = () => {
   const [authError, setAuthError] = useState("");
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
+  
+  // Neuer State für den Login-First-Ansatz
+  const [showLoginScreen, setShowLoginScreen] = useState(true);
+  
+  // Spielernamen für Multiplayer
+  const [playerNames, setPlayerNames] = useState(["Spieler 1", "Spieler 2", "Spieler 3"]);
 
   // Zurück zum Hauptmenü
   const backToMainMenu = () => {
@@ -112,6 +112,7 @@ const Quiz = () => {
         const payload = JSON.parse(window.atob(base64));
         setUser({ id: payload.id, email: payload.email });
         setIsLoggedIn(true);
+        setShowLoginScreen(false); // Login-Screen ausblenden, wenn bereits eingeloggt
       } catch (error) {
         console.error("Fehler beim Dekodieren des Tokens:", error);
         localStorage.removeItem('quizToken'); // Entferne ungültigen Token
@@ -165,7 +166,14 @@ const Quiz = () => {
   // Funktion zum Starten eines Spiels
   const startGame = (mode) => {
     setGameMode(mode);
-    setSelectedCategory(null);
+    
+    // Wenn Solo-Modus, direkt Kategorie 1 wählen
+    if (mode === "solo") {
+      chooseCategory(1);
+    } else {
+      setSelectedCategory(null);
+    }
+    
     setPlayerScores(new Array(playerCount).fill(0));
     setSoloScore(0);
     setCurrentQuestion(0);
@@ -314,6 +322,7 @@ const Quiz = () => {
       setUser({ id: payload.id, email: payload.email });
       setIsLoggedIn(true);
       setShowLoginForm(false);
+      setShowLoginScreen(false); // Login-Screen ausblenden
       setLoginData({ email: "", password: "" });
     } catch (error) {
       console.error("Login fehlgeschlagen:", error);
@@ -343,6 +352,7 @@ const Quiz = () => {
     localStorage.removeItem('quizToken');
     setIsLoggedIn(false);
     setUser(null);
+    setShowLoginScreen(true); // Login-Screen anzeigen nach Logout
   };
 
   // Funktion zum Aktualisieren des neuen Frage-Objekts
@@ -352,88 +362,92 @@ const Quiz = () => {
   };
 
   // Funktion zum Übermitteln einer neuen Frage ans Backend
-  const submitNewQuestion = async () => {
-    if (!isLoggedIn) {
-      alert("Bitte logge dich ein, um eine Frage einzureichen.");
-      return;
-    }
-    
-    // Überprüfe, ob alle Felder ausgefüllt sind
-    if (!newQuestion.category_id || !newQuestion.question || 
-        !newQuestion.option_a || !newQuestion.option_b || 
-        !newQuestion.option_c || !newQuestion.option_d) {
-      alert("Bitte fülle alle Felder aus!");
-      return;
-    }
+	const submitNewQuestion = async () => {
+	  if (!isLoggedIn) {
+		alert("Bitte logge dich ein, um eine Frage einzureichen.");
+		return;
+	  }
+	  
+	  // Überprüfe, ob alle Felder ausgefüllt sind
+	  if (!newQuestion.category_id || !newQuestion.question || 
+		  !newQuestion.option_a || !newQuestion.option_b || 
+		  !newQuestion.option_c || !newQuestion.option_d) {
+		alert("Bitte fülle alle Felder aus!");
+		return;
+	  }
 
-    try {
-      // Hier würdest du eine API zum Speichern der Frage aufrufen
-      // Diese Route müsstest du noch auf deinem Backend implementieren
-      await axios.post(`${API_URL}/questions`, newQuestion);
-      
-      alert("Deine Frage wurde erfolgreich eingereicht!");
-      setIsAddingQuestion(false);
-      
-      // Setze das Formular zurück
-      setNewQuestion({
-        question: "",
-        option_a: "",
-        option_b: "",
-        option_c: "",
-        option_d: "",
-        correct_option: "A",
-        category_id: ""
-      });
-    } catch (error) {
-      console.error("Fehler beim Einreichen der Frage:", error);
-      alert("Es gab einen Fehler beim Einreichen deiner Frage.");
-    }
-  };
+	  try {
+		// Hier ist die Änderung: '/submitted-questions' statt '/questions'
+		await axios.post(`${API_URL}/submitted-questions`, {
+		  ...newQuestion,
+		  user_email: user ? user.email : null
+		});
+		
+		alert("Deine Frage wurde erfolgreich eingereicht!");
+		setIsAddingQuestion(false);
+		
+		// Setze das Formular zurück
+		setNewQuestion({
+		  question: "",
+		  option_a: "",
+		  option_b: "",
+		  option_c: "",
+		  option_d: "",
+		  correct_option: "A",
+		  category_id: ""
+		});
+	  } catch (error) {
+		console.error("Fehler beim Einreichen der Frage:", error);
+		alert("Es gab einen Fehler beim Einreichen deiner Frage: " + (error.response?.data?.error || error.message));
+	  }
+	};
 
   // Render-Methode der Komponente
   return (
     <div className="quiz-container">
-      {/* Benutzerauthentifizierung */}
-      <div className="auth-container">
-        {isLoggedIn ? (
-          <div className="user-info">
-            <span>Eingeloggt als: {user.email}</span>
-            <button onClick={handleLogout}>Logout</button>
+      {/* Login-Screen anzeigen, wenn showLoginScreen true ist */}
+      {showLoginScreen && (
+        <div className="login-screen">
+          <h1>Willkommen zum Quiz!</h1>
+          <p>Bitte logge dich ein oder registriere dich, um fortzufahren.</p>
+          
+          {authError && <p className="error">{authError}</p>}
+          
+          {/* Login-Formular */}
+          <div className="auth-form">
+            <h2>Login</h2>
+            <form onSubmit={handleLogin}>
+              <input
+                type="email"
+                placeholder="E-Mail"
+                value={loginData.email}
+                onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                required
+              />
+              <input
+                type="password"
+                placeholder="Passwort"
+                value={loginData.password}
+                onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                required
+              />
+              <button type="submit">Einloggen</button>
+            </form>
           </div>
-        ) : (
-          <div className="auth-buttons">
-            <button onClick={() => setShowLoginForm(true)}>Login</button>
+          
+          {/* Registrierungs-Link */}
+          <div className="auth-toggle">
+            <p>Noch kein Konto?</p>
             <button onClick={() => setShowRegisterForm(true)}>Registrieren</button>
           </div>
-        )}
-      </div>
-
-      {/* Login-Formular */}
-      {showLoginForm && (
-        <div className="modal">
-          <h2>Login</h2>
-          {authError && <p className="error">{authError}</p>}
-          <form onSubmit={handleLogin}>
-            <input
-              type="email"
-              placeholder="E-Mail"
-              value={loginData.email}
-              onChange={(e) => setLoginData({...loginData, email: e.target.value})}
-              required
-            />
-            <input
-              type="password"
-              placeholder="Passwort"
-              value={loginData.password}
-              onChange={(e) => setLoginData({...loginData, password: e.target.value})}
-              required
-            />
-            <button type="submit">Einloggen</button>
-            <button type="button" onClick={() => setShowLoginForm(false)}>Abbrechen</button>
-          </form>
+          
+          {/* Optional: Spielen als Gast */}
+          <div className="guest-login">
+            <button onClick={() => setShowLoginScreen(false)}>Als Gast spielen</button>
+          </div>
         </div>
       )}
-
+      
       {/* Registrierungs-Formular */}
       {showRegisterForm && (
         <div className="modal">
@@ -460,270 +474,330 @@ const Quiz = () => {
         </div>
       )}
 
-      {/* Hauptmenü - Anzeige, wenn kein Spielmodus ausgewählt ist */}
-      {!gameMode && !showLoginForm && !showRegisterForm && (
-        <div>
-          <h1>Willkommen zum Quiz!</h1>
-          <p>Wähle deinen Spielmodus:</p>
-          <button onClick={() => setGameMode("solo")}>Solo</button>
-          <button onClick={() => setGameMode("multiplayer")}>Mehrspieler</button>
-          <button onClick={() => setGameMode("kooperativ")}>Kooperativ</button>
-          <button onClick={() => setIsAddingQuestion(true)}>Frage einreichen</button>
-        </div>
-      )}
-
-      {/* Formular zum Hinzufügen einer neuen Frage */}
-      {isAddingQuestion && (
-        <div className="modal">
-          <h2>Neue Frage hinzufügen</h2>
-          <select
-            name="category_id"
-            value={newQuestion.category_id}
-            onChange={handleAddQuestionChange}
-          >
-            <option value="">Kategorie auswählen</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-          <input
-            type="text"
-            name="question"
-            placeholder="Frage"
-            value={newQuestion.question}
-            onChange={handleAddQuestionChange}
-          />
-          <input
-            type="text"
-            name="option_a"
-            placeholder="Antwort A"
-            value={newQuestion.option_a}
-            onChange={handleAddQuestionChange}
-          />
-          <input
-            type="text"
-            name="option_b"
-            placeholder="Antwort B"
-            value={newQuestion.option_b}
-            onChange={handleAddQuestionChange}
-          />
-          <input
-            type="text"
-            name="option_c"
-            placeholder="Antwort C"
-            value={newQuestion.option_c}
-            onChange={handleAddQuestionChange}
-          />
-          <input
-            type="text"
-            name="option_d"
-            placeholder="Antwort D"
-            value={newQuestion.option_d}
-            onChange={handleAddQuestionChange}
-          />
-          <select
-            name="correct_option"
-            value={newQuestion.correct_option}
-            onChange={handleAddQuestionChange}
-          >
-            <option value="A">A ist korrekt</option>
-            <option value="B">B ist korrekt</option>
-            <option value="C">C ist korrekt</option>
-            <option value="D">D ist korrekt</option>
-          </select>
-          <textarea
-            name="explanation"
-            placeholder="Erklärung (optional)"
-            value={newQuestion.explanation || ""}
-            onChange={handleAddQuestionChange}
-          />
-          <button onClick={submitNewQuestion}>Frage speichern</button>
-          <button onClick={() => setIsAddingQuestion(false)}>Abbrechen</button>
-          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
-        </div>
-      )}
-
-      {/* Eingabe der Spieleranzahl im Mehrspieler-Modus */}
-{gameMode === "multiplayer" && !selectedCategory && (
-  <div>
-    <h1>Wähle die Anzahl der Spieler (max. 3):</h1>
-    <input
-      type="number"
-      value={playerCount}
-      onChange={(e) => setPlayerCount(Math.min(3, Math.max(1, parseInt(e.target.value))))}
-      min="1"
-      max="3"
-    />
-    
-    {/* Eingabefelder für Spielernamen */}
-    <div className="player-names">
-      <h2>Spielernamen:</h2>
-      {Array.from({ length: playerCount }).map((_, index) => (
-        <div key={index} className="player-name-input">
-          <label>
-            Spieler {index + 1}:
-            <input
-              type="text"
-              value={playerNames[index]}
-              onChange={(e) => {
-                const newNames = [...playerNames];
-                newNames[index] = e.target.value || `Spieler ${index + 1}`;
-                setPlayerNames(newNames);
-              }}
-              placeholder={`Spieler ${index + 1}`}
-            />
-          </label>
-        </div>
-      ))}
-    </div>
-    
-    <button onClick={() => startGame(gameMode)}>Spiel starten</button>
-    <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
-  </div>
-)}
-
-
-      {/* Kategorie-Auswahl, wenn Spielmodus ausgewählt ist */}
-      {gameMode && !selectedCategory && !isAddingQuestion && (
-        <div>
-          <h1>Wähle eine Kategorie:</h1>
-          {categories.map((category) => (
-            <button key={category.id} onClick={() => chooseCategory(category.id)}>
-              {category.name}
-            </button>
-          ))}
-          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
-        </div>
-      )}
-
-      {/* Solo-Modus-Anzeige */}
-      {gameMode === "solo" && selectedCategory && !finished && questions.length > 0 && (
-        <div>
-          <SoloMode
-            questions={questions}
-            currentQuestion={currentQuestion}
-            setCurrentQuestion={setCurrentQuestion}
-            soloScore={soloScore}
-            setSoloScore={setSoloScore}
-            feedback={feedback}
-            answered={answered}
-            handleAnswer={handleAnswer}
-            handleNext={handleNext}
-          />
-          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
-        </div>
-      )}
-
-      {/* Kooperativer Modus-Anzeige */}
-      {gameMode === "kooperativ" && selectedCategory && !finished && questions.length > 0 && (
-        <div>
-          <CooperativeMode
-            questions={questions}
-            currentQuestion={currentQuestion}
-            feedback={feedback}
-            answered={answered}
-            handleAnswer={handleAnswer}
-            handleNext={handleNext}
-          />
-          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
-        </div>
-      )}
-
-      {/* Mehrspieler-Modus-Anzeige */}
-{gameMode === "multiplayer" && selectedCategory && !finished && questions.length > 0 && (
-  <div>
-    <MultiplayerMode
-      questions={questions}
-      currentQuestion={currentQuestion}
-      currentPlayer={currentPlayer}
-      playerScores={playerScores}
-      setPlayerScores={setPlayerScores}
-      feedback={feedback}
-      answered={answered}
-      handleAnswer={handleAnswer}
-      handleNext={handleNext}
-    />
-    <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
-  </div>
-)}
-
-      {/* Quiz beendet - Anzeige der Ergebnisse und Highscores */}
-      {finished && (
-        <div>
-          {/* Speichern des Highscores */}
-          {isLoggedIn && showHighscoreInput && (
-            <div>
-              <button onClick={saveHighscore}>Highscore speichern</button>
-            </div>
-          )}
-          
-          {/* Anzeige der Highscores */}
-          <div>
-            <h2>Highscores</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Spieler</th>
-                  <th>Modus</th>
-                  <th>Punkte</th>
-                  <th>Datum</th>
-                </tr>
-              </thead>
-              <tbody>
-                {highscores.map((score, index) => (
-                  <tr key={index}>
-                    <td>{score.user_email}</td>
-                    <td>{score.mode}</td>
-                    <td>{score.score}</td>
-                    <td>{new Date(score.created_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          <h1>Quiz beendet!</h1>
-          <p>Alle Fragen wurden beantwortet.</p>
-          
-          {/* Zusammenfassung der Fragen und Antworten */}
-          <div>
-            <h2>Fragen und Antworten:</h2>
-            {questions.map((q, index) => (
-              <div key={index}>
-                <p><strong>Frage:</strong> {q.question}</p>
-                <p><strong>Antwort:</strong> {answeredQuestions[index]?.answer}</p>
-                <p><strong>Erklärung:</strong> {answeredQuestions[index]?.explanation}</p>
+      {/* Hauptmenü und Rest des Spiels nur anzeigen, wenn Login-Screen nicht angezeigt wird */}
+      {!showLoginScreen && (
+        <div className="quiz-main-content">
+          {/* Benutzerauthentifizierung */}
+          <div className="auth-container">
+            {isLoggedIn ? (
+              <div className="user-info">
+                <span>Eingeloggt als: {user.email}</span>
+                <button onClick={handleLogout}>Logout</button>
               </div>
-            ))}
+            ) : (
+              <div className="auth-buttons">
+                <button onClick={() => setShowLoginForm(true)}>Login</button>
+                <button onClick={() => setShowRegisterForm(true)}>Registrieren</button>
+              </div>
+            )}
           </div>
 
-          {/* Anzeige der Punkte im Mehrspieler-Modus */}
-          {gameMode === "multiplayer" && (
-            <div>
-              <h2>Punkte je Spieler:</h2>
-              {playerScores.map((score, index) => (
-                <p key={index}>
-                  Spieler {index + 1}: {score} Punkte
-                </p>
-              ))}
+          {/* Login-Formular */}
+          {showLoginForm && (
+            <div className="modal">
+              <h2>Login</h2>
+              {authError && <p className="error">{authError}</p>}
+              <form onSubmit={handleLogin}>
+                <input
+                  type="email"
+                  placeholder="E-Mail"
+                  value={loginData.email}
+                  onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                  required
+                />
+                <input
+                  type="password"
+                  placeholder="Passwort"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                  required
+                />
+                <button type="submit">Einloggen</button>
+                <button type="button" onClick={() => setShowLoginForm(false)}>Abbrechen</button>
+              </form>
             </div>
           )}
 
-          {/* Anzeige der Punkte im Solo-Modus */}
-          {gameMode === "solo" && (
+          {/* Hauptmenü - Anzeige, wenn kein Spielmodus ausgewählt ist */}
+          {!gameMode && !showLoginForm && !showRegisterForm && (
             <div>
-              <h2>Deine Punktzahl:</h2>
-              <p>{soloScore} Punkte</p>
+              <h1>Willkommen zum Quiz!</h1>
+              <p>Wähle deinen Spielmodus:</p>
+              <button onClick={() => setGameMode("solo")}>Solo</button>
+              <button onClick={() => setGameMode("multiplayer")}>Mehrspieler</button>
+              <button onClick={() => setGameMode("kooperativ")}>Kooperativ</button>
+              <button onClick={() => setIsAddingQuestion(true)}>Frage einreichen</button>
             </div>
           )}
 
-          {/* Buttons zum Neustarten oder Zurück zum Hauptmenü */}
-          <button onClick={restartQuiz}>Quiz neu starten</button>
-          <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
+          {/* Formular zum Hinzufügen einer neuen Frage */}
+          {isAddingQuestion && (
+            <div className="modal">
+              <h2>Neue Frage hinzufügen</h2>
+              <select
+                name="category_id"
+                value={newQuestion.category_id}
+                onChange={handleAddQuestionChange}
+              >
+                <option value="">Kategorie auswählen</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                name="question"
+                placeholder="Frage"
+                value={newQuestion.question}
+                onChange={handleAddQuestionChange}
+              />
+              <input
+                type="text"
+                name="option_a"
+                placeholder="Antwort A"
+                value={newQuestion.option_a}
+                onChange={handleAddQuestionChange}
+              />
+              <input
+                type="text"
+                name="option_b"
+                placeholder="Antwort B"
+                value={newQuestion.option_b}
+                onChange={handleAddQuestionChange}
+              />
+              <input
+                type="text"
+                name="option_c"
+                placeholder="Antwort C"
+                value={newQuestion.option_c}
+                onChange={handleAddQuestionChange}
+              />
+              <input
+                type="text"
+                name="option_d"
+                placeholder="Antwort D"
+                value={newQuestion.option_d}
+                onChange={handleAddQuestionChange}
+              />
+              <select
+                name="correct_option"
+                value={newQuestion.correct_option}
+                onChange={handleAddQuestionChange}
+              >
+                <option value="A">A ist korrekt</option>
+                <option value="B">B ist korrekt</option>
+                <option value="C">C ist korrekt</option>
+                <option value="D">D ist korrekt</option>
+              </select>
+              <textarea
+                name="explanation"
+                placeholder="Erklärung (optional)"
+                value={newQuestion.explanation || ""}
+                onChange={handleAddQuestionChange}
+              />
+              <button onClick={submitNewQuestion}>Frage speichern</button>
+              <button onClick={() => setIsAddingQuestion(false)}>Abbrechen</button>
+              <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
+            </div>
+          )}
+
+          {/* Eingabe der Spieleranzahl im Mehrspieler-Modus */}
+          {gameMode === "multiplayer" && !selectedCategory && (
+            <div>
+              <h1>Wähle die Anzahl der Spieler (max. 3):</h1>
+              <input
+                type="number"
+                value={playerCount}
+                onChange={(e) => setPlayerCount(Math.min(3, Math.max(1, parseInt(e.target.value))))}
+                min="1"
+                max="3"
+              />
+              
+              {/* Eingabefelder für Spielernamen */}
+              <div className="player-names">
+                <h2>Spielernamen:</h2>
+                {Array.from({ length: playerCount }).map((_, index) => (
+                  <div key={index} className="player-name-input">
+                    <label>
+                      Spieler {index + 1}:
+                      <input
+                        type="text"
+                        value={playerNames[index]}
+                        onChange={(e) => {
+                          const newNames = [...playerNames];
+                          newNames[index] = e.target.value || `Spieler ${index + 1}`;
+                          setPlayerNames(newNames);
+                        }}
+                        placeholder={`Spieler ${index + 1}`}
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
+              
+             
+            </div>
+          )}
+
+          {/* Kategorie-Auswahl, wenn Spielmodus ausgewählt ist */}
+          {gameMode && !selectedCategory && !isAddingQuestion && (
+            <div>
+              <h1>Wähle eine Kategorie:</h1>
+              
+              <div className="category-dropdown">
+                <select 
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      chooseCategory(parseInt(e.target.value));
+                    }
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>Kategorie auswählen</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
+            </div>
+          )}
+
+          {/* Solo-Modus-Anzeige */}
+          {gameMode === "solo" && selectedCategory && !finished && questions.length > 0 && (
+            <div>
+              <SoloMode
+                questions={questions}
+                currentQuestion={currentQuestion}
+                setCurrentQuestion={setCurrentQuestion}
+                soloScore={soloScore}
+                setSoloScore={setSoloScore}
+                feedback={feedback}
+                answered={answered}
+                handleAnswer={handleAnswer}
+                handleNext={handleNext}
+              />
+              <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
+            </div>
+          )}
+
+          {/* Kooperativer Modus-Anzeige */}
+          {gameMode === "kooperativ" && selectedCategory && !finished && questions.length > 0 && (
+            <div>
+              <CooperativeMode
+                questions={questions}
+                currentQuestion={currentQuestion}
+                feedback={feedback}
+                answered={answered}
+                handleAnswer={handleAnswer}
+                handleNext={handleNext}
+              />
+              <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
+            </div>
+          )}
+
+          {/* Mehrspieler-Modus-Anzeige */}
+          {gameMode === "multiplayer" && selectedCategory && !finished && questions.length > 0 && (
+            <div>
+              <MultiplayerMode
+                questions={questions}
+                currentQuestion={currentQuestion}
+                currentPlayer={currentPlayer}
+                playerScores={playerScores}
+                setPlayerScores={setPlayerScores}
+                feedback={feedback}
+                answered={answered}
+                handleAnswer={handleAnswer}
+                handleNext={handleNext}
+                playerNames={playerNames}
+              />
+              <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
+            </div>
+          )}
+
+          {/* Quiz beendet - Anzeige der Ergebnisse und Highscores */}
+          {finished && (
+            <div>
+              {/* Speichern des Highscores */}
+              {isLoggedIn && showHighscoreInput && (
+                <div>
+                  <button onClick={saveHighscore}>Highscore speichern</button>
+                </div>
+              )}
+              
+              {/* Anzeige der Highscores */}
+              <div>
+                <h2>Highscores</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Spieler</th>
+                      <th>Modus</th>
+                      <th>Punkte</th>
+                      <th>Datum</th>
+                    </tr>
+                  </thead>
+				<tbody>
+				  {highscores.map((score, index) => (
+					<tr key={index}>
+					  <td>{score.name}</td>
+					  <td>{score.mode}</td>
+					  <td>{score.score}</td>
+					  <td>{new Date(score.created_at).toLocaleDateString()}</td>
+					</tr>
+				  ))}
+				</tbody>
+                </table>
+              </div>
+              
+              <h1>Quiz beendet!</h1>
+              <p>Alle Fragen wurden beantwortet.</p>
+              
+              {/* Zusammenfassung der Fragen und Antworten */}
+              <div>
+                <h2>Fragen und Antworten:</h2>
+                {questions.map((q, index) => (
+                  <div key={index}>
+                    <p><strong>Frage:</strong> {q.question}</p>
+                    <p><strong>Antwort:</strong> {answeredQuestions[index]?.answer}</p>
+                    <p><strong>Erklärung:</strong> {answeredQuestions[index]?.explanation}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Anzeige der Punkte im Mehrspieler-Modus */}
+              {gameMode === "multiplayer" && (
+                <div>
+                  <h2>Punkte je Spieler:</h2>
+                  {playerScores.map((score, index) => (
+                    <p key={index}>
+                      {playerNames[index]}: {score} Punkte
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {/* Anzeige der Punkte im Solo-Modus */}
+              {gameMode === "solo" && (
+                <div>
+                  <h2>Deine Punktzahl:</h2>
+                  <p>{soloScore} Punkte</p>
+                </div>
+              )}
+
+              
+{/* Buttons zum Neustarten oder Zurück zum Hauptmenü */}
+              <button onClick={restartQuiz}>Quiz neu starten</button>
+              <button onClick={handleBackToMainMenu}>Zurück zum Hauptmenü</button>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 };
 
-export default Quiz;
+export default Quiz;				  
