@@ -105,7 +105,7 @@ const Quiz = () => {
     // Prüfe, ob ein Token im localStorage ist
     const token = localStorage.getItem('quizToken');
     if (token) {
-      // Extrahiere Benutzerinformationen aus dem JWT (vereinfacht)
+      // Extrahiere Benutzerinformationen aus dem JWT 
       try {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -128,9 +128,9 @@ const Quiz = () => {
       // Lade Fragen für die ausgewählte Kategorie
       const response = await axios.get(`${API_URL}/questions?category=${categoryId}`);
       
-      // Konvertiere die Antworten in das Format, das dein Frontend erwartet
+      // Konvertiere die Antworten in das Format
       const formattedQuestions = response.data.map(q => {
-        // Konvertiere die Datenbank-Antworten in das Array-Format, das dein Frontend erwartet
+        // Konvertiere die Datenbank-Antworten in das Array-Format
         const answers = [q.option_a, q.option_b, q.option_c, q.option_d];
         
         // Konvertiere die korrekte Option (A, B, C, D) in einen Index (0, 1, 2, 3)
