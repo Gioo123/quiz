@@ -5,7 +5,7 @@ import MultiplayerMode from "./MultiplayerMode";
 import CooperativeMode from "./CooperativeMode";
 import axios from "axios";
 
-// API Basis-URL - angepasst für Render
+// API Basis-URL 
 const API_URL = "https://webquiz-tqdz.onrender.com";
 
 const Quiz = () => {
@@ -166,8 +166,7 @@ const Quiz = () => {
   // Funktion zum Starten eines Spiels
   const startGame = (mode) => {
     setGameMode(mode);
-    
-    // Wenn Solo-Modus, direkt Kategorie 1 wählen
+     
     if (mode === "solo") {
       chooseCategory(1);
     } else {
@@ -377,7 +376,6 @@ const Quiz = () => {
 	  }
 
 	  try {
-		// Hier ist die Änderung: '/submitted-questions' statt '/questions'
 		await axios.post(`${API_URL}/submitted-questions`, {
 		  ...newQuestion,
 		  user_email: user ? user.email : null
