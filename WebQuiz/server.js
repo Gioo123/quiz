@@ -200,7 +200,7 @@ app.get('/explanation/:question_id', async (req, res) => {
 
 // === ROUTE: Nutzer kann neue Frage einreichen ===
 // Diese Frage wird NICHT direkt ins Quiz übernommen, sondern in die Tabelle 'submitted_questions' geschrieben
-// Sie wartet dort auf Freigabe durch einen Admin (oder euch als Projektteam)
+// Freigabe durch einen Admin erforderlich
 
 app.post('/submitted-questions', async (req, res) => {
   // Hole alle notwendigen Felder aus dem Anfrage-Body
